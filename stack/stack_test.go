@@ -24,9 +24,15 @@ func TestPushPop(t *testing.T) {
 func TestLIFOOrder(t *testing.T) {
 	s := NewStack(3)
 
-	s.Push(1)
-	s.Push(2)
-	s.Push(3)
+	if err := s.Push(1); err != nil {
+		t.Fatalf("unexpected error on push: %v", err)
+	}
+	if err := s.Push(2); err != nil {
+		t.Fatalf("unexpected error on push: %v", err)
+	}
+	if err := s.Push(3); err != nil {
+		t.Fatalf("unexpected error on push: %v", err)
+	}
 
 	expected := []int{3, 2, 1}
 
@@ -57,8 +63,12 @@ func TestEmptyStack(t *testing.T) {
 func TestFullStack(t *testing.T) {
 	s := NewStack(2)
 
-	s.Push(1)
-	s.Push(2)
+	if err := s.Push(1); err != nil {
+		t.Fatalf("unexpected error on push: %v", err)
+	}
+	if err := s.Push(2); err != nil {
+		t.Fatalf("unexpected error on push: %v", err)
+	}
 
 	if !s.IsFull() {
 		t.Error("stack should be full")
@@ -77,14 +87,20 @@ func TestSize(t *testing.T) {
 		t.Errorf("expected size 0, got %d", s.Size())
 	}
 
-	s.Push(1)
-	s.Push(2)
+	if err := s.Push(1); err != nil {
+		t.Fatalf("unexpected error on push: %v", err)
+	}
+	if err := s.Push(2); err != nil {
+		t.Fatalf("unexpected error on push: %v", err)
+	}
 
 	if s.Size() != 2 {
 		t.Errorf("expected size 2, got %d", s.Size())
 	}
 
-	s.Pop()
+	if _, err := s.Pop(); err != nil {
+		t.Fatalf("unexpected error on pop: %v", err)
+	}
 
 	if s.Size() != 1 {
 		t.Errorf("expected size 1, got %d", s.Size())
