@@ -1,57 +1,61 @@
 package stack
 
-import (
-	"errors"
-)
+import "errors"
 
 var (
-	ErrOverflow  = errors.New("queue is empty")
-	ErrUnderflow = errors.New("queue is full")
+	ErrUnderflow       = errors.New("stack underflow: cannot pop from empty stack")
+	ErrOverflow        = errors.New("stack overflow: cannot push onto full stack")
+	ErrInvalidCapacity = errors.New("capacity must be greater than zero")
 )
 
-type Stack struct {
-	arr []int
+type Stack[T any] struct {
+	arr []T
 	top int
 	n   int
 }
 
-func NewStack(n int) *Stack {
-	return &Stack{
-		arr: make([]int, n+1),
+func NewStack[T any](n int) (*Stack[T], error) {
+	if n <= 0 {
+		return nil, ErrInvalidCapacity
+	}
+
+	return &Stack[T]{
+		arr: make([]T, n+1),
 		top: 0,
 		n:   n,
-	}
+	}, nil
 }
 
-func (s *Stack) Pop() (int, error) {
+func (s *Stack[T]) Pop() (T, error) {
 	if s.top == 0 {
-		return 0, ErrUnderflow
+		var zero T
+		return zero, ErrUnderflow
 	}
 
-	s.top = s.top - 1
+	s.top--
 
 	return s.arr[s.top+1], nil
 }
 
-func (s *Stack) Push(x int) error {
+func (s *Stack[T]) Push(x T) error {
 	if s.IsFull() {
 		return ErrOverflow
 	}
 
-	s.top = s.top + 1
+	s.top++
 	s.arr[s.top] = x
 
 	return nil
 }
 
-func (s *Stack) IsEmpty() bool {
+func (s *Stack[T]) IsEmpty() bool {
 	return s.top == 0
 }
 
-func (s *Stack) IsFull() bool {
+func (s *Stack[T]) IsFull() bool {
 	return s.top == s.n
 }
 
-func (s *Stack) Size() int {
+func (s *Stack[T]) Size() int {
 	return s.top
 }
