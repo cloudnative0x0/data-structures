@@ -5,8 +5,20 @@ import (
 	"testing"
 )
 
+func TestNewStackInvalidCapacity(t *testing.T) {
+	for _, c := range []int{0, -1} {
+		s, err := NewStack[int](c)
+		if err != ErrInvalidCapacity {
+			t.Errorf("capacity %d: expected ErrInvalidCapacity, got %v", c, err)
+		}
+		if s != nil {
+			t.Errorf("capacity %d: expected nil stack, got %v", c, s)
+		}
+	}
+}
+
 func TestPushPop(t *testing.T) {
-	s := NewStack(5)
+	s, _ := NewStack[int](5)
 
 	if err := s.Push(10); err != nil {
 		t.Fatalf("unexpected error on push: %v", err)
@@ -22,20 +34,13 @@ func TestPushPop(t *testing.T) {
 }
 
 func TestLIFOOrder(t *testing.T) {
-	s := NewStack(3)
+	s, _ := NewStack[int](3)
 
-	if err := s.Push(1); err != nil {
-		t.Fatalf("unexpected error on push: %v", err)
-	}
-	if err := s.Push(2); err != nil {
-		t.Fatalf("unexpected error on push: %v", err)
-	}
-	if err := s.Push(3); err != nil {
-		t.Fatalf("unexpected error on push: %v", err)
-	}
+	_ = s.Push(1)
+	_ = s.Push(2)
+	_ = s.Push(3)
 
 	expected := []int{3, 2, 1}
-
 	for i, want := range expected {
 		got, err := s.Pop()
 		if err != nil {
@@ -48,59 +53,49 @@ func TestLIFOOrder(t *testing.T) {
 }
 
 func TestEmptyStack(t *testing.T) {
-	s := NewStack(3)
+	s, _ := NewStack[int](3)
 
 	if !s.IsEmpty() {
 		t.Error("new stack should be empty")
 	}
 
 	_, err := s.Pop()
-	if err == nil {
-		t.Error("expected underflow error, got nil")
+	if err != ErrUnderflow {
+		t.Errorf("expected underflow error, got %v", err)
 	}
 }
 
 func TestFullStack(t *testing.T) {
-	s := NewStack(2)
+	s, _ := NewStack[int](2)
 
-	if err := s.Push(1); err != nil {
-		t.Fatalf("unexpected error on push: %v", err)
-	}
-	if err := s.Push(2); err != nil {
-		t.Fatalf("unexpected error on push: %v", err)
-	}
+	_ = s.Push(1)
+	_ = s.Push(2)
 
 	if !s.IsFull() {
 		t.Error("stack should be full")
 	}
 
 	err := s.Push(3)
-	if err == nil {
-		t.Error("expected overflow error, got nil")
+	if err != ErrOverflow {
+		t.Errorf("expected overflow error, got %v", err)
 	}
 }
 
 func TestSize(t *testing.T) {
-	s := NewStack(5)
+	s, _ := NewStack[int](5)
 
 	if s.Size() != 0 {
 		t.Errorf("expected size 0, got %d", s.Size())
 	}
 
-	if err := s.Push(1); err != nil {
-		t.Fatalf("unexpected error on push: %v", err)
-	}
-	if err := s.Push(2); err != nil {
-		t.Fatalf("unexpected error on push: %v", err)
-	}
+	_ = s.Push(1)
+	_ = s.Push(2)
 
 	if s.Size() != 2 {
 		t.Errorf("expected size 2, got %d", s.Size())
 	}
 
-	if _, err := s.Pop(); err != nil {
-		t.Fatalf("unexpected error on pop: %v", err)
-	}
+	_, _ = s.Pop()
 
 	if s.Size() != 1 {
 		t.Errorf("expected size 1, got %d", s.Size())
@@ -115,7 +110,7 @@ func TestStress(t *testing.T) {
 	const capacity = 30
 
 	for iter := 0; iter < iterations; iter++ {
-		mine := NewStack(capacity)
+		mine, _ := NewStack[int](capacity)
 		var ref []int
 
 		for op := 0; op < opsPerIteration; op++ {
@@ -128,12 +123,10 @@ func TestStress(t *testing.T) {
 					}
 					ref = append(ref, val)
 				}
-
 			case 1: // pop
 				if len(ref) > 0 {
 					want := ref[len(ref)-1]
 					ref = ref[:len(ref)-1]
-
 					got, err := mine.Pop()
 					if err != nil {
 						t.Fatalf("iter %d: unexpected pop error: %v", iter, err)
@@ -142,8 +135,7 @@ func TestStress(t *testing.T) {
 						t.Fatalf("iter %d: mismatch on pop: expected %d, got %d", iter, want, got)
 					}
 				}
-
-			case 2:
+			case 2: // size checks
 				if mine.Size() != len(ref) {
 					t.Fatalf("iter %d: size mismatch: expected %d, got %d", iter, len(ref), mine.Size())
 				}
@@ -152,5 +144,18 @@ func TestStress(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestStackWithStrings(t *testing.T) {
+	s, _ := NewStack[string](3)
+	_ = s.Push("a")
+	_ = s.Push("b")
+	val, err := s.Pop()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if val != "b" {
+		t.Errorf("expected 'b', got %q", val)
 	}
 }
