@@ -1,6 +1,13 @@
 package stack
 
-import "fmt"
+import (
+	"errors"
+)
+
+var (
+	ErrOverflow  = errors.New("queue is empty")
+	ErrUnderflow = errors.New("queue is full")
+)
 
 type Stack struct {
 	arr []int
@@ -18,7 +25,7 @@ func NewStack(n int) *Stack {
 
 func (s *Stack) Pop() (int, error) {
 	if s.top == 0 {
-		return 0, fmt.Errorf("stack underflow")
+		return 0, ErrUnderflow
 	}
 
 	s.top = s.top - 1
@@ -28,7 +35,7 @@ func (s *Stack) Pop() (int, error) {
 
 func (s *Stack) Push(x int) error {
 	if s.IsFull() {
-		return fmt.Errorf("stack overflow")
+		return ErrOverflow
 	}
 
 	s.top = s.top + 1
