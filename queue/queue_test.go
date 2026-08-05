@@ -79,7 +79,9 @@ func TestPeek(t *testing.T) {
 		t.Errorf("Peek on empty: expected ErrEmpty, got %v", err)
 	}
 
-	q.Enqueue(42)
+	if err := q.Enqueue(42); err != nil {
+		t.Fatalf("Enqueue failed: %v", err)
+	}
 	val, err := q.Peek()
 	if err != nil {
 		t.Fatalf("Peek unexpected error: %v", err)
@@ -99,16 +101,24 @@ func TestPeek(t *testing.T) {
 
 func TestCircularWrapAround(t *testing.T) {
 	q, _ := NewQueue[int](3)
-	q.Enqueue(1) // head=0, tail=1
-	q.Enqueue(2) // head=0, tail=2
+	if err := q.Enqueue(1); err != nil { // head=0, tail=1
+		t.Fatalf("Enqueue failed: %v", err)
+	}
+	if err := q.Enqueue(2); err != nil { // head=0, tail=2
+		t.Fatalf("Enqueue failed: %v", err)
+	}
 
 	v, err := q.Dequeue()
 	if err != nil || v != 1 {
 		t.Fatalf("expected 1, got %v", v)
 	}
 	// head=1, tail=2
-	q.Enqueue(3) // tail=0
-	q.Enqueue(4) // tail=1
+	if err := q.Enqueue(3); err != nil { // tail=0
+		t.Fatalf("Enqueue failed: %v", err)
+	}
+	if err := q.Enqueue(4); err != nil { // tail=1
+		t.Fatalf("Enqueue failed: %v", err)
+	}
 
 	want := []int{2, 3, 4}
 	for _, w := range want {
