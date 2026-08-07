@@ -15,8 +15,8 @@ type HashTable[K comparable, V any] struct {
 	size     int
 	count    int
 	strategy ProbeStrategy
-	h1       HashFunc[K] // основной хеш — определяет стартовый слот
-	h2       HashFunc[K] // вспомогательный хеш — используется только для Double
+	h1       HashFunc[K]
+	h2       HashFunc[K]
 }
 
 type Node[K comparable, V any] struct {
@@ -25,8 +25,6 @@ type Node[K comparable, V any] struct {
 	deleted bool
 }
 
-// h2 обязателен только для стратегии Double, но проще всегда требовать обе функции,
-// чем городить nil-проверки в проде.
 func NewHashMap[K comparable, V any](size int, strategy ProbeStrategy, h1, h2 HashFunc[K]) *HashTable[K, V] {
 	return &HashTable[K, V]{
 		slots:    make([]*Node[K, V], size),
@@ -38,18 +36,21 @@ func NewHashMap[K comparable, V any](size int, strategy ProbeStrategy, h1, h2 Ha
 }
 
 // baseHash возвращает индекс слота для первой попытки.
+// baseHash return index slot for the first try.
 func (ht *HashTable[K, V]) baseHash(key K) int {
 	return int(ht.h1(key) % uint64(ht.size))
 }
 
-// stepHash — шаг для двойного хеширования.
-// Возвращает значение в диапазоне [1, size-1], т.е. никогда 0.
+// stepHash – шаг для двойного хеширования.
+// stepHash – is a step for the double hashing.
+// Returns a value in [1, size-1], it means never return 0.
 func (ht *HashTable[K, V]) stepHash(key K) int {
 	step := int(ht.h2(key) % uint64(ht.size-1))
 	return step + 1
 }
 
 // probe возвращает индекс i-й попытки согласно выбранной стратегии.
+// probe returns the index of the i-th attempt according to the selected strategy.
 func (ht *HashTable[K, V]) probe(base, step, i int) int {
 	switch ht.strategy {
 	case Linear:
