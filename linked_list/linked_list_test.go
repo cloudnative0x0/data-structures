@@ -196,13 +196,25 @@ func TestSizeConsistencyAcrossOps(t *testing.T) {
 	ll.Append(1)
 	ll.Append(2)
 	ll.Prepend(0)
-	ll.InsertAt(2, 99)
+	err := ll.InsertAt(2, 99)
+	if err != nil {
+		return
+	}
 	if ll.Len() != 4 {
 		t.Fatalf("len = %d, want 4", ll.Len())
 	}
-	ll.Remove(99)
-	ll.RemoveFirst()
-	ll.RemoveLast()
+	errR := ll.Remove(99)
+	if errR != nil {
+		return
+	}
+	_, errRF := ll.RemoveFirst()
+	if errRF != nil {
+		return
+	}
+	_, errRL := ll.RemoveLast()
+	if errRL != nil {
+		return
+	}
 	if ll.Len() != 1 {
 		t.Fatalf("len = %d, want 1", ll.Len())
 	}
