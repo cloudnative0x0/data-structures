@@ -41,6 +41,7 @@ func firstVerified(word uint64, mask uint64, want byte) (pos int, ok bool) {
 		}
 		mask &= mask - 1
 	}
+
 	return 0, false
 }
 
@@ -58,6 +59,7 @@ func dirIndex(hash uint64, globalDepth uint) uint64 {
 	if globalDepth == 0 {
 		return 0
 	}
+
 	return hash >> (64 - globalDepth)
 }
 
@@ -78,6 +80,7 @@ func makeProbeSeq(h1 uint64, mask uint64) probeSeq {
 func (s probeSeq) next() probeSeq {
 	s.index++
 	s.offset = (s.offset + s.index) & s.mask
+
 	return s
 }
 
@@ -116,6 +119,7 @@ func newBucket[K comparable, V any](groups int, localDepth uint) *bucket[K, V] {
 	for i := range b.ctrl {
 		b.ctrl[i] = empty
 	}
+
 	return b
 }
 
@@ -146,9 +150,12 @@ func (b *bucket[K, V]) get(h1 uint64, h2 byte, key K) (val V, ok bool) {
 				return zero, false
 			}
 		}
+
 		seq = seq.next()
 	}
+
 	var zero V
+
 	return zero, false
 }
 
@@ -176,6 +183,7 @@ func (b *bucket[K, V]) putIfPresent(h1 uint64, h2 byte, key K, val V) bool {
 		}
 		seq = seq.next()
 	}
+
 	return false
 }
 
@@ -207,14 +215,18 @@ func (b *bucket[K, V]) insert(h1 uint64, h2 byte, key K, val V) bool {
 				if delGroup == -1 {
 					b.growthLeft--
 				}
+
 				b.ctrl[tg] = setByte(b.ctrl[tg], tp, h2)
 				b.slots[idx] = slot[K, V]{key: key, val: val}
 				b.used++
+
 				return true
 			}
 		}
+
 		seq = seq.next()
 	}
+
 	return false
 }
 
@@ -235,6 +247,7 @@ func (b *bucket[K, V]) delete(h1 uint64, h2 byte, key K) bool {
 		for matches := matchByte(word, h2); matches != 0; matches &= matches - 1 {
 			pos := bits.TrailingZeros64(matches) / 8
 			idx := g*groupSize + pos
+
 			if b.slots[idx].key == key {
 				if empty := matchByte(word, ctrlEmpty); empty != 0 {
 					if _, ok := firstVerified(word, empty, ctrlEmpty); ok {
@@ -246,9 +259,12 @@ func (b *bucket[K, V]) delete(h1 uint64, h2 byte, key K) bool {
 				} else {
 					b.ctrl[g] = setByte(word, pos, ctrlDeleted)
 				}
+
 				var zero slot[K, V]
+
 				b.slots[idx] = zero
 				b.used--
+
 				return true
 			}
 		}
@@ -259,6 +275,7 @@ func (b *bucket[K, V]) delete(h1 uint64, h2 byte, key K) bool {
 		}
 		seq = seq.next()
 	}
+
 	return false
 }
 
@@ -279,6 +296,7 @@ func (b *bucket[K, V]) rehashInPlace(hash func(K) uint64) *bucket[K, V] {
 			}
 		}
 	}
+
 	return grown
 }
 
@@ -292,10 +310,12 @@ func (b *bucket[K, V]) split(hash func(K) uint64) (lo, hi *bucket[K, V]) {
 	if groups < 1 {
 		groups = 1
 	}
+
 	lo = newBucket[K, V](groups, newDepth)
 	hi = newBucket[K, V](groups, newDepth)
 
 	bitPos := 64 - newDepth
+
 	for g := 0; g < b.groups; g++ {
 		word := b.ctrl[g]
 		for pos := 0; pos < groupSize; pos++ {
@@ -306,12 +326,11 @@ func (b *bucket[K, V]) split(hash func(K) uint64) (lo, hi *bucket[K, V]) {
 				full := hash(key)
 				h1, h2 := splitHash(full)
 				dst := lo
+
 				if (full>>bitPos)&1 == 1 {
 					dst = hi
 				}
 				if !dst.insert(h1, h2, key, val) {
-					// dst сам переполнился при перераспределении — растим его на месте.
-					// dst overflowed during redistribution — grow it in place.
 					dst = dst.rehashInPlace(hash)
 					dst.insert(h1, h2, key, val)
 				}
@@ -323,6 +342,7 @@ func (b *bucket[K, V]) split(hash func(K) uint64) (lo, hi *bucket[K, V]) {
 			}
 		}
 	}
+
 	return lo, hi
 }
 
@@ -339,6 +359,7 @@ type FastSwissMap[K comparable, V any] struct {
 
 func NewFastSwissMap[K comparable, V any](hash func(K) uint64) *FastSwissMap[K, V] {
 	b := newBucket[K, V](1, 0)
+
 	return &FastSwissMap[K, V]{
 		dir:  []*bucket[K, V]{b},
 		hash: hash,
@@ -347,6 +368,7 @@ func NewFastSwissMap[K comparable, V any](hash func(K) uint64) *FastSwissMap[K, 
 
 func (m *FastSwissMap[K, V]) bucketFor(hash uint64) (idx uint64, b *bucket[K, V]) {
 	idx = dirIndex(hash, m.globalDepth)
+
 	return idx, m.dir[idx]
 }
 
@@ -354,6 +376,7 @@ func (m *FastSwissMap[K, V]) Get(key K) (V, bool) {
 	full := m.hash(key)
 	h1, h2 := splitHash(full)
 	_, b := m.bucketFor(full)
+
 	return b.get(h1, h2, key)
 }
 
@@ -374,6 +397,7 @@ func (m *FastSwissMap[K, V]) Put(key K, val V) {
 	if b.growthLeft > 0 {
 		if b.insert(h1, h2, key, val) {
 			m.count++
+
 			return
 		}
 	}
@@ -385,6 +409,7 @@ func (m *FastSwissMap[K, V]) Put(key K, val V) {
 		m.installBucket(idx, grown)
 		grown.insert(h1, h2, key, val)
 		m.count++
+
 		return
 	}
 
@@ -402,6 +427,7 @@ func (m *FastSwissMap[K, V]) Delete(key K) bool {
 		m.count--
 		return true
 	}
+
 	return false
 }
 
@@ -424,20 +450,9 @@ func (m *FastSwissMap[K, V]) installBucket(anyIdx uint64, b *bucket[K, V]) {
 // splitBucket splits an overflowing bucket into two. If its localDepth already
 // equals globalDepth, the directory is doubled first.
 func (m *FastSwissMap[K, V]) splitBucket(idx uint64, b *bucket[K, V]) {
-	// origLocalDepth — глубина ДО расщепления: задаёт суммарное число ячеек
-	// директории для lo+hi. Глубина уже созданных lo/hi (localDepth+1) для этого
-	// не годится — с ней часть ячеек останется не переписана и укажет на
-	// выброшенный bucket (был баг именно на этом месте).
-
-	// origLocalDepth — depth BEFORE the split: defines the total directory slot
-	// count for lo+hi combined. Using the already-incremented lo/hi depth here is
-	// wrong — some slots would stay unwritten and point at the discarded bucket
-	// (this exact spot was the bug).
 	origLocalDepth := b.localDepth
 	if origLocalDepth == m.globalDepth {
 		m.growDirectory()
-		// Директория удвоилась: старый индекс i -> пара новых {2i, 2i+1}.
-		// Directory doubled: old index i -> new pair {2i, 2i+1}.
 		idx *= 2
 	}
 	lo, hi := b.split(m.hash)
