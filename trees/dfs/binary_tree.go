@@ -1,14 +1,11 @@
 package dfs
 
-// Node is a node of a binary tree.
 type Node struct {
 	Value int
 	Left  *Node
 	Right *Node
 }
 
-// New builds a complete binary tree from values given in level order.
-// For example, []int{1, 2, 3} creates a root 1 with children 2 and 3.
 func New(values []int) *Node {
 	if len(values) == 0 {
 		return nil
